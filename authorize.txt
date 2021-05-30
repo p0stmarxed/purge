@@ -1,0 +1,43 @@
+# import libraries
+import requests
+from requests_oauthlib import OAuth1Session
+
+# manual client setup with OAuth. This will be used to request a temporary oauth1 token to be used for oauth1 authorization
+request_token_url = 'https://www.tumblr.com/oauth/request_token'
+client_key = '(enter your client key here)'
+client_secret = '(enter your client secret here)'
+
+# get your temporary token
+oauth = OAuth1Session(client_key, client_secret=client_secret)
+fetch_response = oauth.fetch_request_token(request_token_url)
+resource_owner_key = fetch_response.get('oauth_token')
+resource_owner_secret = fetch_response.get('oauth_token_secret')
+
+# get authorization to access protected resources. trying to make api calls to block users will not work without this authorization
+# when it prints the /oauth/authorize?oauth_token url, you will need to copy and paste the url into a browser window
+# on that page you will be prompted to allow this script read and write access to your tumblr account
+# click allow and you will be redirected to the callback url that you set up when you registered the application
+# however, your oauth token and verifier will be appended to the end of the url on that page
+# copy and paste that url from your browser tab into the input field in your code after declaring the redirect_response variable
+base_authorization_url = 'https://www.tumblr.com/oauth/authorize'
+authorization_url = oauth.authorization_url(base_authorization_url)
+print('Please go here and authorize,', authorization_url)
+Please go here and authorize, https://www.tumblr.com/oauth/authorize?oauth_token=(there will be a random string here)
+redirect_response = input('Paste the full redirect URL here: ')
+Paste the full redirect URL here: https://your.callback.url?oauth_token=(random string here)&oauth_verifier=(random string here)#_=_
+oauth_response = oauth.parse_authorization_response(redirect_response)
+verifier = oauth_response.get('oauth_verifier')
+
+# finally, this will provide you your oauth access token with elevated permissions so you can access all the protected resources you need
+access_token_url = 'https://www.tumblr.com/oauth/access_token'
+oauth = OAuth1Session(client_key,
+                          client_secret=client_secret,
+                          resource_owner_key=resource_owner_key,
+                          resource_owner_secret=resource_owner_secret,
+                          verifier=verifier)
+oauth_tokens = oauth.fetch_access_token(access_token_url)
+print(oauth_tokens)
+{'oauth_token': '(random string here)', 'oauth_token_secret': '(random string here)'}
+# save the token and secret above somewhere since they can be reused and you will need them to run the actual script that does the blocking
+# copy and paste it into a .txt file or something
+
