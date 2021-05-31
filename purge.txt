@@ -1,0 +1,66 @@
+# purge
+
+# import libraries
+import requests
+from requests_oauthlib import OAuth1Session
+from requests_oauthlib import OAuth1
+
+# authenticate
+client_key = 'enter client key here'
+client_secret = 'enter client secret here'
+
+# enter the oauth token and secret you received from the authorize script
+oauth_tokens = {'oauth_token': 'enter oauth token here', 'oauth_token_secret': 'enter oauth token secret here'}
+
+# set oauth credentials to these variables for query signing
+resource_owner_key = oauth_tokens.get('oauth_token')
+resource_owner_secret = oauth_tokens.get('oauth_token_secret')
+
+# set uri for blocking
+blocks = 'http://api.tumblr.com/v2/blog/yoururl.tumblr.com/blocks'
+
+# query signing
+queryoauth = OAuth1(client_key, client_secret,
+                    resource_owner_key, resource_owner_secret,
+                    signature_type='query')
+
+# set uri for retrieving list of your followers
+followers_url = 'http://api.tumblr.com/v2/blog/yoururl.tumblr.com/followers'
+
+# returns a JSON object containing your followers
+followers = requests.get(followers_url, auth=queryoauth)
+
+# convert JSON object to a standard python list
+import json
+followers = json.loads(followers.text)
+
+# remove metadata at the top of the list
+followers = followers['response']['users']
+
+# create a new list that does not contain any mutuals
+non_mutuals = [i for i in followers if not (i['following'] == True)]
+
+# define a function that will be used to softblock every follower in non_mutuals		
+def softblock(x):
+	block = requests.post(blocks, data=x, auth=queryoauth)
+	unblock = requests.delete(blocks, data=x, auth=queryoauth)
+	if block.status_code == 201 and unblock.status_code == 200:
+		return 'success'
+	else:
+		return 'failed'
+
+# import this library to set rate limit	
+from ratelimit import limits
+
+# tumblr api block and unblock calls are rate limited at 60 requests per minute
+# decorator sets limit of 1 call per second, equivalent to 60 calls per minute
+# purge() function will iterate through each item in the list, declare a variable containing the parameters needed for the block and unblock calls
+# then call softblock() function
+@limits(calls=1, period=1)
+def purge():
+	for i in range(len(non_mutuals)):
+		blog = {'blocked_tumblelog': non_mutuals[i]['name']}
+		softblock(blog)
+
+#finally, call your function
+purge()
