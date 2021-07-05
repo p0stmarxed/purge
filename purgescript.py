@@ -29,7 +29,7 @@ def main():
         elif o in ("-m", "--max"):
             max_followers_to_consider = int(a)
             if not isinstance(max_followers_to_consider, int):
-                print("max to block must be an integer")
+                print("max followers to consider must be an integer")
                 sys.exit(2)
         elif o in ("-k", "--key"):
             client_key = a
@@ -39,7 +39,7 @@ def main():
             assert False, "unhandled option"
 
     if not username or not max_followers_to_consider:
-        print("username and max followers to block required")
+        print("username and max followers to consider required")
         sys.exit(1)
     if not client_key or not client_secret:
         print("client key and secret required")
