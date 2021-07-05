@@ -44,23 +44,45 @@ def init(tokens, username):
         signature_type='query')
 
 def add_followers(queryoauth, followers, offset, limit):
-    followers_to_add = requests.get(followers_url, params = {"offset": offset}, auth = queryoauth).json()['response']['users']
+    followers_to_add = requests.get(followers_url, params = {"offset": offset, "limit": limit}, auth = queryoauth).json()['response']['users']
     followers.extend(followers_to_add)
 
 # get the subset of the followers list that is mutuals
 def get_mutuals(followers):
     return [follower for follower in followers if (follower['following'])]
 
-def get_ask_posts(queryoauth):
+def add_ask_posts(queryoauth, ask_posts, offset, limit):
+    ask_posts_to_add = requests.get(posts_url, params = {"type": type, "tag": tag, "offset": offset, "limit": limit}, auth = queryoauth).json()['response']['users']
+    ask_posts.extend(ask_posts_to_add)
+
+def get_ask_posts(queryoauth, max_followers_to_consider):
     type = "answer"
     tag = "spare"
-    return requests.get(posts_url, params = {"type": type, "tag": tag}, auth = queryoauth).json()['response']['posts']
+    ask_posts = requests.get(posts_url, params = {"type": type, "tag": tag}, auth = queryoauth).json()['response']['posts']
+
+    range_max = int(max_followers_to_consider // 20)
+    last_request_limit = 0
+
+    if range_max * 20 < max_followers_to_consider:
+        range_max += 1
+        last_request_limit = range_max * 20 - max_followers_to_consider
+
+    for i in range(1, range_max):
+        offset = i * 20
+        limit = 20
+
+        if i == range_max:
+            limit = last_request_limit
+
+        add_ask_posts(queryoauth, ask_posts, offset, limit)
+
+    return ask_posts
 
 # get the subset of the followers list that is mutuals
-def get_spared_users(queryoauth, followers):
+def get_spared_users(queryoauth, followers, max_followers_to_consider):
     follower_names = [follower['name'] for follower in followers]
 
-    ask_posts = get_ask_posts(queryoauth)
+    ask_posts = get_ask_posts(queryoauth, max_followers_to_consider)
     return [post for post in ask_posts if post['asking_name'] in follower_names and not post['source_url']]
 
 # after the following function is run, followers should contain a list of dictionaries
@@ -92,7 +114,7 @@ def get_followers_list(max_followers_to_consider, nice_mode):
     followers = [follower for follower in followers if follower not in mutuals]
     
     if (nice_mode):
-        spared_users = get_spared_users(queryoauth, followers)
+        spared_users = get_spared_users(queryoauth, followers, max_followers_to_consider)
         followers = [follower for follower in followers if follower not in spared_users]
     
     return followers

@@ -26,7 +26,7 @@ All parameters are required except the `--nice` flag.
 
 ### `--nice`
 
-If set, the purge script will exclude users that have sent an ask asking not to be purged *that has been tagged with #spare.* Ask needs to be non-anonymous and sent originally to the blog doing the purging.
+If set, the purge script will exclude users that have sent an ask asking not to be purged *that has been tagged with #spare.* Ask needs to be non-anonymous and sent originally to the blog doing the purging. Up to `<max_followers_to_pull>` asks are looked at.
 
 ### `-u` (`--username`)
 
