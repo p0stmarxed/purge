@@ -14,7 +14,7 @@ from ratelimit import limits
 
 # global vars - to avoid having a billion params everywhere
 username = ''
-max_to_block = 0
+max_followers_to_consider = 0
 client_key = ''
 client_secret = ''
 resource_owner_key = ''
@@ -28,8 +28,9 @@ followers_url = base_url + 'followers'
 
 # authorize
 def authorize():
-    request_token_url = 'https://www.tumblr.com/oauth/request_token'
-    base_authorization_url = 'https://www.tumblr.com/oauth/authorize'
+    base_auth_url = 'https://www.tumblr.com/oauth/'
+    request_token_url = base_auth_url + 'request_token'
+    authorize_url = base_auth_url + 'authorize'
 
     oauth = OAuth1Session(client_key, client_secret=client_secret)
     fetch_response = oauth.fetch_request_token(request_token_url)
@@ -37,7 +38,7 @@ def authorize():
     resource_owner_key = fetch_response.get('oauth_token')
     resource_owner_secret = fetch_response.get('oauth_token_secret')
 
-    authorization_url = oauth.authorization_url(base_authorization_url)
+    authorization_url = oauth.authorization_url(authorize_url)
     webbrowser.open(authorization_url)
 
     redirect_response = input('Paste the full redirect URL here: ')
@@ -45,7 +46,7 @@ def authorize():
 
     verifier = oauth_response.get('oauth_verifier')
 
-    access_token_url = 'https://www.tumblr.com/oauth/access_token'
+    access_token_url = base_auth_url + 'access_token'
     oauth = OAuth1Session(client_key,
         client_secret=client_secret,
         resource_owner_key=resource_owner_key,
@@ -70,12 +71,12 @@ def build_followers_list(queryoauth):
     followers = followers['response']['users']
 
     followers = []
-    range_max = int(max_to_block // 20)
+    range_max = int(max_followers_to_consider // 20)
     last_request_limit = 0
 
-    if range_max * 20 < max_to_block:
+    if range_max * 20 < max_followers_to_consider:
         range_max += 1
-        last_request_limit = range_max * 20 - max_to_block
+        last_request_limit = range_max * 20 - max_followers_to_consider
 
     for i in range(1, range_max):
         print(i * 20)
@@ -96,16 +97,19 @@ def softblock(x):
     block = requests.post(blocks, data=x, auth=queryoauth)
     unblock = requests.delete(blocks, data=x, auth=queryoauth)
     if block.status_code == 201 and unblock.status_code == 200:
-        return 'success'
+        return True
     else:
-        return 'failed'
+        return False
 
 @limits(calls=1, period=1)
 def purge():
     for i in range(len(non_mutuals)):
         blog = {'blocked_tumblelog': non_mutuals[i]['name']}
         print(blog)
-        softblock(blog)
+        result = softblock(blog)
+
+        if not result:
+            print("Something went wrong with softblocking user ", blog)
 
 # define a function that will be used to softblock every follower in non_mutuals
 # tumblr api block and unblock calls are rate limited at 60 requests per minute
@@ -122,7 +126,7 @@ def purge():
 
 def main():
     long_args = ["help", "username=", "key=", "secret=", "max="]
-    global username, max_to_block, client_key, client_secret
+    global username, max_followers_to_consider, client_key, client_secret
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "u:m:k:s:", long_args)
@@ -134,8 +138,8 @@ def main():
         if o in ("-u", "--username"):
             username = a
         elif o in ("-m", "--max"):
-            max_to_block = int(a)
-            if not isinstance(max_to_block, int):
+            max_followers_to_consider = int(a)
+            if not isinstance(max_followers_to_consider, int):
                 print("max to block must be an integer")
                 sys.exit(2)
         elif o in ("-k", "--key"):
@@ -145,7 +149,7 @@ def main():
         else:
             assert False, "unhandled option"
 
-    if not username or not max_to_block:
+    if not username or not max_followers_to_consider:
         print("username and max followers to block required")
         sys.exit(1)
     if not client_key or not client_secret:
