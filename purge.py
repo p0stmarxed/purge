@@ -1,57 +1,16 @@
 #!/bin/env python
 
 # import libraries
-import sys, getopt
-import webbrowser
 import json
-
-import requests
-from requests_oauthlib import OAuth1Session
-from requests_oauthlib import OAuth1
-
-# import this library to set rate limit	
 from ratelimit import limits
 
-# global vars - to avoid having a billion params everywhere
-username = ''
-max_followers_to_consider = 0
-client_key = ''
-client_secret = ''
-resource_owner_key = ''
-resource_owner_secret = ''
+# global vars
 non_mutuals = []
 
 # useful urls
 base_url = 'http://api.tumblr.com/v2/blog/' + username + '.tumblr.com/'
 blocks = base_url + 'blocks'
 followers_url = base_url + 'followers'
-
-# authorize
-def authorize():
-    base_auth_url = 'https://www.tumblr.com/oauth/'
-    request_token_url = base_auth_url + 'request_token'
-    authorize_url = base_auth_url + 'authorize'
-
-    oauth = OAuth1Session(client_key, client_secret=client_secret)
-    fetch_response = oauth.fetch_request_token(request_token_url)
-
-    resource_owner_key = fetch_response.get('oauth_token')
-    resource_owner_secret = fetch_response.get('oauth_token_secret')
-
-    authorization_url = oauth.authorization_url(authorize_url)
-    webbrowser.open(authorization_url)
-
-    redirect_response = input('Paste the full redirect URL here: ')
-    oauth_response = oauth.parse_authorization_response(redirect_response)
-
-    verifier = oauth_response.get('oauth_verifier')
-
-    access_token_url = base_auth_url + 'access_token'
-    oauth = OAuth1Session(client_key,
-        client_secret=client_secret,
-        resource_owner_key=resource_owner_key,
-        resource_owner_secret=resource_owner_secret,
-        verifier=verifier)
 
 def add_followers(followers, offset, limit):
     followers_to_add = requests.get(followers_url, params = {"offset": offset}, auth = queryoauth)
@@ -101,8 +60,15 @@ def softblock(x):
     else:
         return False
 
+# define a function that will be used to softblock every follower in non_mutuals
+# tumblr api block and unblock calls are rate limited at 60 requests per minute
+# decorator sets limit of 1 call per second, equivalent to 60 calls per minute
+# purge() function will iterate through each item in the list, declare a variable containing the parameters needed for the block and unblock calls
+# then call softblock() function
 @limits(calls=1, period=1)
-def purge():
+def purge(queryoauth):
+    build_followers_list(queryoauth)
+
     for i in range(len(non_mutuals)):
         blog = {'blocked_tumblelog': non_mutuals[i]['name']}
         print(blog)
@@ -110,54 +76,3 @@ def purge():
 
         if not result:
             print("Something went wrong with softblocking user ", blog)
-
-# define a function that will be used to softblock every follower in non_mutuals
-# tumblr api block and unblock calls are rate limited at 60 requests per minute
-# decorator sets limit of 1 call per second, equivalent to 60 calls per minute
-# purge() function will iterate through each item in the list, declare a variable containing the parameters needed for the block and unblock calls
-# then call softblock() function
-def purge():
-    # query signing & call build followers list function
-    queryoauth = OAuth1(client_key, client_secret,
-                    resource_owner_key, resource_owner_secret,
-                    signature_type='query')
-
-    build_followers_list(queryoauth)
-
-def main():
-    long_args = ["help", "username=", "key=", "secret=", "max="]
-    global username, max_followers_to_consider, client_key, client_secret
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:m:k:s:", long_args)
-    except getopt.GetoptError as err:
-        print(err)
-        sys.exit(2)
-    
-    for o, a in opts:
-        if o in ("-u", "--username"):
-            username = a
-        elif o in ("-m", "--max"):
-            max_followers_to_consider = int(a)
-            if not isinstance(max_followers_to_consider, int):
-                print("max to block must be an integer")
-                sys.exit(2)
-        elif o in ("-k", "--key"):
-            client_key = a
-        elif o in ("-s", "--secret"):
-            client_secret = a
-        else:
-            assert False, "unhandled option"
-
-    if not username or not max_followers_to_consider:
-        print("username and max followers to block required")
-        sys.exit(1)
-    if not client_key or not client_secret:
-        print("client key and secret required")
-        sys.exit(1)
-
-    authorize()
-    purge()
-
-if __name__ == "__main__":
-    main()
