@@ -37,8 +37,5 @@ def authorize(client_key, client_secret):
         resource_owner_key=resource_owner_key,
         resource_owner_secret=resource_owner_secret,
         verifier=verifier)
-
-    # query signing & call build followers list function
-    return OAuth1(client_key, client_secret,
-        resource_owner_key, resource_owner_secret,
-        signature_type='query')
+    oauth_tokens = oauth.fetch_access_token(access_token_url)
+    return oauth_tokens

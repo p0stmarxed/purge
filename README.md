@@ -19,7 +19,27 @@ This is a real pain.
 
 Use it like this:
 ```shell
-python purge.py -u <your_username> -m <max_followers_to_pull> -k <client_key> -s <client_secret>
+python purgescript.py [--nice] -u <your_username> -m <max_followers_to_pull> -k <client_key> -s <client_secret>
 ```
 
-**Note:** When you specify the max number of followers to pull, this is the number of recent followers that is checked, among which non-mutuals are blocked, NOT necessarily the number of users that will be blocked.
+All parameters are required except the `--nice` flag.
+
+### `--nice`
+
+If set, the purge script will exclude users that have sent an ask asking not to be purged *that has been tagged with #spare.* Ask needs to be non-anonymous and sent originally to the blog doing the purging.
+
+### `-u` (`--username`)
+
+The user whose followers we're purging.
+
+### `-m` (`--max`)
+
+The maximum number of followers to pull, *not all of whom will be blocked.* This is the number of followers we are simply looking at. Mutuals will be excluded. If `--nice` flag is set, people who have sent *published* asks asking not to be purged will also be excluded.
+
+### `-k` (`--key`)
+
+Client key. See [Authorization](#Authorization) section.
+
+### `-s` (`--secret`)
+
+Client secret. See [Authorization](#Authorization) section.

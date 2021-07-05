@@ -12,10 +12,11 @@ username = ''
 max_followers_to_consider = 0
 client_key = ''
 client_secret = ''
+nice_mode = False
 
 def main():
-    long_args = ["help", "username=", "key=", "secret=", "max="]
-    global username, max_followers_to_consider, client_key, client_secret
+    long_args = ["nice", "username=", "key=", "secret=", "max="]
+    global username, max_followers_to_consider, client_key, client_secret, nice_mode
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "u:m:k:s:", long_args)
@@ -24,7 +25,9 @@ def main():
         sys.exit(2)
     
     for o, a in opts:
-        if o in ("-u", "--username"):
+        if o in ("--nice"):
+            nice_mode = True
+        elif o in ("-u", "--username"):
             username = a
         elif o in ("-m", "--max"):
             max_followers_to_consider = int(a)
@@ -45,8 +48,18 @@ def main():
         print("client key and secret required")
         sys.exit(1)
 
-    queryoauth = authorization.authorize(client_key, client_secret)
-    purge.purge(queryoauth)
+    access_token = authorization.authorize(client_key, client_secret)
+    resource_owner_key = access_token['oauth_token']
+    resource_owner_secret = access_token['oauth_token_secret']
+
+    tokens = {
+        "client_key": client_key,
+        "client_secret": client_secret,
+        "resource_owner_key": resource_owner_key,
+        "resource_owner_secret": resource_owner_secret
+    }
+
+    purge.purge(tokens, username, max_followers_to_consider, nice_mode)
 
 if __name__ == "__main__":
     main()
