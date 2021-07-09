@@ -19,14 +19,14 @@ This is a real pain.
 
 Use it like this:
 ```shell
-python purgescript.py [--nice] -u <your_username> -m <max_followers_to_pull> -k <client_key> -s <client_secret>
+python purgescript.py [--nice] -u <your_username> -m <number_to_block> -k <client_key> -s <client_secret>
 ```
 
 All parameters are required except the `--nice` flag.
 
 ### `--nice`
 
-If set, the purge script will exclude users that have sent an ask asking not to be purged *that has been tagged with #spare.* Ask needs to be non-anonymous and sent originally to the blog doing the purging. Up to `<max_followers_to_pull>` asks are looked at.
+If set, the purge script will exclude users that have sent an ask asking not to be purged *that has been tagged with #spare.* Ask needs to be non-anonymous and sent originally to the blog doing the purging. Up to `<number_to_block>` asks are looked at.
 
 ### `-u` (`--username`)
 
@@ -34,7 +34,7 @@ The user whose followers we're purging.
 
 ### `-m` (`--max`)
 
-The maximum number of followers to pull, *not all of whom will be blocked.* This is the number of followers we are simply looking at. Mutuals will be excluded. If `--nice` flag is set, people who have sent *published* asks asking not to be purged will also be excluded.
+The number of followers to block. Mutuals will be excluded. If `--nice` flag is set, people who have sent *published* asks asking not to be purged will also be excluded.
 
 ### `-k` (`--key`)
 

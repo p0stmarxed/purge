@@ -9,14 +9,14 @@ import purge
 
 # global vars - to avoid having a billion params everywhere
 username = ''
-max_followers_to_consider = 0
+number_to_block = 0
 client_key = ''
 client_secret = ''
 nice_mode = False
 
 def main():
     long_args = ["nice", "username=", "key=", "secret=", "max="]
-    global username, max_followers_to_consider, client_key, client_secret, nice_mode
+    global username, number_to_block, client_key, client_secret, nice_mode
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "u:m:k:s:", long_args)
@@ -30,9 +30,9 @@ def main():
         elif o in ("-u", "--username"):
             username = a
         elif o in ("-m", "--max"):
-            max_followers_to_consider = int(a)
-            if not isinstance(max_followers_to_consider, int):
-                print("max followers to consider must be an integer")
+            number_to_block = int(a)
+            if not isinstance(number_to_block, int):
+                print("number of followers to block must be an integer")
                 sys.exit(2)
         elif o in ("-k", "--key"):
             client_key = a
@@ -41,8 +41,8 @@ def main():
         else:
             assert False, "unhandled option"
 
-    if not username or not max_followers_to_consider:
-        print("username and max followers to consider required")
+    if not username or not number_to_block:
+        print("username and number of followers to block required")
         sys.exit(1)
     if not client_key or not client_secret:
         print("client key and secret required")
@@ -59,7 +59,7 @@ def main():
         "resource_owner_secret": resource_owner_secret
     }
 
-    purge.purge(tokens, username, max_followers_to_consider, nice_mode)
+    purge.purge(tokens, username, number_to_block, nice_mode)
 
 if __name__ == "__main__":
     main()
